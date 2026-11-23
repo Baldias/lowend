@@ -5,9 +5,6 @@ A tiny, minimal bass practice app. First tool: a **tuner**.
 - Dark, one screen, big readable note — built to glance at while you play.
 - Standard 4-string tuning (E A D G), A4 = 440 Hz. 5-string / drop tunings later.
 
-**Design:** [Figma — Lowend, Bass Practice](https://www.figma.com/design/f5pwpIv8nYWVXfS50iiLQf)
-(tokens, `String key` and `Cents meter` components, tuner states, PWA frame).
-
 ## Targets
 
 | Target | Status |
@@ -16,17 +13,26 @@ A tiny, minimal bass practice app. First tool: a **tuner**.
 | Web app / PWA | planned |
 | Windows desktop | planned |
 
-## Architecture (portable by design)
+## Run
 
-```
-core/      Rust crate: pitch detection (YIN), note/cents math. No audio, no UI deps.
-           Builds native and to wasm32 — the same DSP runs everywhere.
-web/       UI in plain HTML/CSS/TS. Mic via Web Audio (getUserMedia + AudioWorklet),
-           calls core through wasm. This *is* the web app and the PWA.
-desktop/   Tauri v2 shell around web/ — macOS now, Windows with the same code.
+```sh
+cargo run --release          # dev
+./scripts/bundle-macos.sh    # builds target/lowend.app (needed for mic permission)
+cargo test
 ```
 
-One DSP core, one UI, every platform. Lightweight: no framework, Tauri uses the system webview.
+## Architecture
+
+All Rust, one crate, split so porting touches one file:
+
+```
+src/pitch.rs   pitch detection (pYIN via `pyin`) + note/cents math. No I/O: runs on wasm as-is.
+src/audio.rs   mic capture via `cpal`. The only platform-specific module.
+src/i18n.rs    UI strings (IT, EN). Language follows the system, click the code to switch.
+src/main.rs    UI with `egui`/`eframe` (runs native and in the browser).
+```
+
+Windows: same code, `cargo build`. Web/PWA: `eframe` on wasm + a Web Audio `audio.rs`.
 
 ## Design tokens
 
